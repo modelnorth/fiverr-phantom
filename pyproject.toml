@@ -22,7 +22,7 @@ classifiers = [
 ]
 dependencies = [
     "patchright>=1.49.0",
-    "mcp[cli]>=1.0.0"
+    "mcp[cli]<2",
 ]
 
 [project.scripts]

@@ -5,7 +5,7 @@ Fiverr Phantom CLI Entrypoint
 import sys
 import argparse
 import json
-from .actions import login_flow, check_status, update_profile_bio, bulk_add_skills
+from .actions import login_flow, check_status, get_account_overview, update_profile_bio, bulk_add_skills
 
 def main():
     parser = argparse.ArgumentParser(
@@ -14,6 +14,7 @@ def main():
     )
     parser.add_argument("--login", action="store_true", help="Launch interactive visible window to log in and save session")
     parser.add_argument("--status", action="store_true", help="Check if current stored session is valid")
+    parser.add_argument("--overview", action="store_true", help="Inspect authenticated seller account, active orders, and gigs")
     parser.add_argument("--update-bio", action="store_true", help="Update profile tagline and bio description")
     parser.add_argument("--tagline", type=str, default=None, help="One-liner seller tagline")
     parser.add_argument("--description", type=str, default=None, help="Full seller bio description")
@@ -27,6 +28,9 @@ def main():
         print(json.dumps(res, indent=2))
     elif args.status:
         res = check_status()
+        print(json.dumps(res, indent=2))
+    elif args.overview:
+        res = get_account_overview()
         print(json.dumps(res, indent=2))
     elif args.update_bio:
         res = update_profile_bio(description=args.description, tagline=args.tagline)

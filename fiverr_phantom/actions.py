@@ -64,6 +64,56 @@ def check_status() -> Dict[str, Any]:
             logger.error("Status check failed: %s", e)
             return {"status": "error", "error": str(e)}
 
+def get_account_overview() -> Dict[str, Any]:
+    """Inspect authenticated Fiverr seller account and extract key metrics, profile info, and gigs."""
+    with PhantomSession(headless=False) as session:
+        page = session.page
+        try:
+            page.goto("https://www.fiverr.com/seller_dashboard", wait_until="domcontentloaded", timeout=35000)
+            session.human_delay(2, 3)
+            
+            if "login" in page.url or "It needs a human touch" in page.title():
+                return {
+                    "status": "unauthenticated",
+                    "message": "Fiverr session is not logged in. Please run `fiverr-phantom --login` to authenticate."
+                }
+            
+            overview = {
+                "status": "authenticated",
+                "url": page.url,
+                "title": page.title()
+            }
+            
+            try:
+                username_el = page.locator(".user-name, [data-testid='user-name'], a[href*='/users/']").first
+                if username_el.count() > 0:
+                    overview["username"] = username_el.inner_text().strip()
+            except Exception as e:
+                logger.debug("Failed to extract username: %s", e)
+                
+            try:
+                avatar = page.locator("a[href*='/users/']").first
+                if avatar.count() > 0:
+                    avatar.click()
+                    session.human_delay(2, 3)
+                    overview["profile_url"] = page.url
+                    
+                    # Inspect gigs
+                    gigs = page.locator(".gig-card-layout, .seller-gig-card, .gig-wrapper, h3")
+                    gig_titles = []
+                    for i in range(min(gigs.count(), 10)):
+                        text = gigs.nth(i).inner_text().strip()
+                        if text and len(text) > 5 and "\n" not in text:
+                            gig_titles.append(text)
+                    overview["gigs"] = gig_titles
+            except Exception as e:
+                logger.debug("Failed to inspect profile page: %s", e)
+                
+            return overview
+        except Exception as e:
+            logger.error("Failed to fetch account overview: %s", e)
+            return {"status": "error", "error": str(e)}
+
 def update_profile_bio(description: Optional[str] = None, tagline: Optional[str] = None) -> Dict[str, Any]:
     """Update seller bio and one-liner tagline with humanized typing and validation."""
     clean_tagline = sanitize_text(tagline, max_len=70)
